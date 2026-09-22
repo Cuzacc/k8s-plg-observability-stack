@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Synthetic Alert Triggering & Verification Script (Thesis Scenarios 1, 2, 3)
+# Synthetic Alert Triggering & Verification Script
 # ==============================================================================
 
 set -euo pipefail
@@ -8,7 +8,7 @@ set -euo pipefail
 APP_URL="${1:-http://localhost:80}"
 
 echo "=========================================================================="
-echo "🎯 Automated Alert Testing Suite for Kubernetes PLG Stack"
+echo "Alert Verification Suite for Kubernetes PLG Stack"
 echo "Target Application URL: ${APP_URL}"
 echo "=========================================================================="
 
@@ -24,31 +24,31 @@ show_menu() {
 }
 
 test_cpu_stress() {
-    echo "🔥 [Scenario 1] Generating concurrent synthetic traffic to stress CPU..."
+    echo "[INFO] [Scenario 1] Generating concurrent synthetic traffic to stress CPU..."
     if command -v hey &> /dev/null; then
         hey -z 3m -c 250 -q 50 "${APP_URL}/"
     else
-        echo "⚠️ 'hey' tool not found. Falling back to background curl requests..."
+        echo "[WARN] 'hey' tool not found. Falling back to background curl requests..."
         for i in {1..50}; do
             while true; do curl -s "${APP_URL}/" > /dev/null; done &
         done
         sleep 180
         kill $(jobs -p) || true
     fi
-    echo "✅ Scenario 1 finished. Check Telegram for HighNodeCPUUtilization alert!"
+    echo "[SUCCESS] Scenario 1 completed. Check Telegram for HighNodeCPUUtilization alert."
 }
 
 test_http_404() {
-    echo "🔍 [Scenario 2] Injecting 50 HTTP 404 invalid requests into Loki..."
+    echo "[INFO] [Scenario 2] Injecting 50 HTTP 404 invalid requests into Loki..."
     for i in {1..50}; do
         curl -s -o /dev/null "${APP_URL}/api/v1/invalid-endpoint-${i}" || true
         sleep 0.2
     done
-    echo "✅ Scenario 2 finished. Check Telegram for HighHTTP404RateSpike alert!"
+    echo "[SUCCESS] Scenario 2 completed. Check Telegram for HighHTTP404RateSpike alert."
 }
 
 test_pod_crashloop() {
-    echo "💥 [Scenario 3] Deploying faulty pod to trigger CrashLoopBackOff..."
+    echo "[INFO] [Scenario 3] Deploying faulty pod to trigger CrashLoopBackOff..."
     cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Pod
@@ -64,11 +64,11 @@ spec:
       image: busybox:1.36
       command: ["/bin/sh", "-c", "echo 'Simulating fatal error' && exit 1"]
 EOF
-    echo "⏳ Waiting 60s for restarts to accumulate..."
+    echo "[INFO] Waiting 60s for restart cycles to accumulate..."
     sleep 60
-    echo "🧹 Cleaning up faulty pod..."
+    echo "[INFO] Cleaning up faulty pod..."
     kubectl delete pod test-crash-pod -n app --ignore-not-found=true
-    echo "✅ Scenario 3 finished. Check Telegram for PodCrashLooping alert!"
+    echo "[SUCCESS] Scenario 3 completed. Check Telegram for PodCrashLooping alert."
 }
 
 if [ "${2:-}" == "--all" ]; then
@@ -91,5 +91,5 @@ case "${choice}" in
         test_pod_crashloop
         ;;
     q|Q) exit 0 ;;
-    *) echo "Invalid choice." ; exit 1 ;;
+    *) echo "[ERROR] Invalid choice." ; exit 1 ;;
 esac
