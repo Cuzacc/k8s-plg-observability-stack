@@ -1,0 +1,65 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-infrastructure-rules
+  namespace: monitoring
+  labels:
+    role: alert-rules
+    app.kubernetes.io/part-of: kube-prometheus-stack
+spec:
+  groups:
+    # ==============================================================================
+    # Group 1: Node & Compute Infrastructure Health
+    # ==============================================================================
+    - name: NodeComputeAlerts
+      rules:
+        # Scenario 1 (From Thesis): High Node CPU Utilization > 80% for 3 minutes
+        - alert: HighNodeCPUUtilization
+          expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance)) * 100 > 80
+          for: 3m
+          labels:
+            severity: critical
+            tier: infrastructure
+          annotations:
+            summary: "High CPU usage detected on node {{ $labels.instance }}"
+            description: "Node {{ $labels.instance }} CPU utilization has exceeded 80% (current value: {{ $value | printf \"%.2f\" }}%) for more than 3 minutes."
+            runbook_url: "https://ops.internal/runbooks/high-node-cpu"
+
+        # High Memory Utilization Alert
+        - alert: HighNodeMemoryUtilization
+          expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            tier: infrastructure
+          annotations:
+            summary: "High Memory usage on node {{ $labels.instance }}"
+            description: "Node {{ $labels.instance }} memory usage is above 85% (current: {{ $value | printf \"%.2f\" }}%)."
+
+    # ==============================================================================
+    # Group 2: Workload & Pod Stability (Car Service App)
+    # ==============================================================================
+    - name: WorkloadStabilityAlerts
+      rules:
+        # Scenario 3 (From Thesis): Pod CrashLooping / Frequent Restarts
+        - alert: PodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{namespace="app"}[5m]) > 3
+          for: 1m
+          labels:
+            severity: critical
+            tier: application
+          annotations:
+            summary: "Pod {{ $labels.pod }} is in a CrashLoopBackOff cycle"
+            description: "Pod {{ $labels.pod }} in namespace '{{ $labels.namespace }}' has restarted {{ $value }} times within the last 5 minutes. Immediate investigation required."
+            runbook_url: "https://ops.internal/runbooks/k8s-pod-crashloop"
+
+        # Pod Container CPU Throttle Warning
+        - alert: ContainerCPUThrottlingHigh
+          expr: sum(increase(container_cpu_cfs_throttled_periods_total{namespace="app"}[5m])) by (container, pod) / sum(increase(container_cpu_cfs_periods_total{namespace="app"}[5m])) by (container, pod) * 100 > 25
+          for: 5m
+          labels:
+            severity: warning
+            tier: application
+          annotations:
+            summary: "Container {{ $labels.container }} is experiencing severe CPU throttling"
+            description: "{{ $value | printf \"%.2f\" }}% of CPU periods throttled for pod {{ $labels.pod }}."

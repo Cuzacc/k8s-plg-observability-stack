@@ -1,0 +1,29 @@
+# ==============================================================================
+# Loki LogQL Alerting Rules (Ruler Configuration)
+# ==============================================================================
+groups:
+  - name: application-log-alerts
+    rules:
+      # Scenario 2 (From Thesis): High Rate of HTTP 404 Client Errors
+      - alert: HighHTTP404RateSpike
+        expr: count_over_time({app="car-serv-app"} |= " 404 "[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          tier: application
+          component: web-service
+        annotations:
+          summary: "High volume of HTTP 404 errors on Car Service App"
+          description: "Detected more than 10 HTTP 404 errors within 5 minutes. Possible endpoint scanning, broken client links, or route misconfiguration."
+
+      # HTTP 500 Server Error Alert
+      - alert: HTTP5xxServerErrorDetected
+        expr: count_over_time({app="car-serv-app"} |= " 500 "[2m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          tier: application
+          component: web-service
+        annotations:
+          summary: "Critical HTTP 500 Internal Server Errors detected"
+          description: "Multiple 5xx responses recorded in Loki logs within a 2-minute window."

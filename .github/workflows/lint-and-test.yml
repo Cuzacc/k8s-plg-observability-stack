@@ -1,0 +1,32 @@
+name: Infrastructure CI - Observability Stack
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  validate-configs:
+    name: Lint Helm Values & Alert Rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Validate YAML Syntax with yamllint
+        run: |
+          sudo apt-get update && sudo apt-get install -y yamllint
+          yamllint -d "{extends: default, rules: {line-length: {max: 200}, document-start: disable}}" helm/ alerts/
+
+      - name: Validate Prometheus Alert Rules
+        uses: stefanprodan/kube-tools@v1
+        with:
+          kubectl: 1.28.2
+          command: |
+            kubectl apply --dry-run=client -f alerts/prometheus-rules.yaml

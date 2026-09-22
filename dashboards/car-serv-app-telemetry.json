@@ -1,0 +1,98 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Application Runtime Metrics (Prometheus)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"app\", pod=~\"car-serv-app.*\"}[5m])) by (pod) * 100",
+          "legendFormat": "Pod {{pod}} CPU %",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Utilization per Pod (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"app\", pod=~\"car-serv-app.*\"}) by (pod)",
+          "legendFormat": "Memory {{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Memory Working Set (RAM)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 4,
+      "title": "Real-Time Centralized Log Stream (Loki)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "id": 5,
+      "options": {
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "expr": "{app=\"car-serv-app\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "Live Pod Logs Stream",
+      "type": "logs"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["kubernetes", "car-serv", "prometheus", "loki"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Car Service - Enterprise Observability Dashboard",
+  "uid": "car-serv-telemetry",
+  "version": 1
+}
